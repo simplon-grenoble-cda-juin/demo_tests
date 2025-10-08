@@ -1,0 +1,10 @@
+node_modules/
+
+public/css/*
+!public/css/.gitkeep
+
+public/js/*
+!public/js/.gitkeep
+
+.env
+coverage/
