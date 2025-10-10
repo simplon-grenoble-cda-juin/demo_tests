@@ -65,23 +65,22 @@ export class AuthService {
 
   // Test N°6
   static validateAuthToken(request: Request): Result<{ token: string }, null> {
+    // On récupères les cookies de la requête entrante
     const authCookies = request.cookies;
 
-    if (!authCookies) {
-      return {
-        success: false,
-        message: "Token manquant ou invalide",
-      };
-    }
-    const authorization = authCookies.id;
-
-    if (!authorization) {
+    // On retourne une erreur si les cookies sont vides
+    // ou s'il n'y a pas de cookie nommé "userToken"
+    if (!authCookies?.userToken) {
       return {
         success: false,
         message: "Token manquant ou invalide",
       };
     }
 
-    return { success: true, data: { token: authorization } };
+    // On récupère la valeur du cookie
+    const userToken: string = authCookies.userToken;
+
+    // On retourne un objet avec le token dans les data
+    return { success: true, data: { token: userToken } };
   }
 }

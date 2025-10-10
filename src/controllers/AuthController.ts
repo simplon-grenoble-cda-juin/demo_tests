@@ -61,7 +61,11 @@ export class AuthController extends Controller {
     // Push data in the fake database
     tokens.set(token, email);
 
-    this.response.cookie("id", token, {
+    // On crée un cookie "userToken" et on lui donne
+    // la valeur du token généré plus tot (ligne 59)
+    this.response.cookie("userToken", token, {
+      // Permet d'éviter que le cookie soit accessible
+      // par du JavaScript côté navigateur
       httpOnly: true,
     });
 
@@ -73,11 +77,13 @@ export class AuthController extends Controller {
   };
 
   profil = () => {
-    console.log(this.request.cookies);
-
+    // On récupère un objet concernant l'état de validation du cookie
+    // + sa potentielle valeur (si trouvée)
     const tokenCheck = AuthService.validateAuthToken(this.request);
 
+    // Si on a eu une erreur dans la récupération...
     if (!tokenCheck.success) {
+      // On retourne une erreur 401
       return this.response
         .status(401)
         .json({ message: "Token manquant ou invalide" });
@@ -86,20 +92,28 @@ export class AuthController extends Controller {
     const token = tokenCheck.data.token;
     const email = tokens.get(token);
 
-    console.log({ token, email });
-
+    // Si le token ne correspond pas à un enregistrement
+    // dans le Map "tokens"...
     if (!email) {
+      // On retourne une erreur 403
       return this.response.status(403).json({ message: "Token non reconnu" });
     }
 
+    // On récupère l'utilisateur correspondant à l'adresse
+    // email récupérée plut tôt
     const found = AuthService.findUserByEmail(users, email);
 
+    // Si aucun utilisateur trouvé...
     if (!found.success) {
+      // On retourne une erreur 404
       return this.response
         .status(404)
         .json({ message: "Utilisateur introuvable" });
     }
 
+    // On retourne un succès (200) avec
+    // le message "Token valide" et les
+    // données de l'utilisateur dans "data"
     this.response.json({
       message: "Token valide",
       data: JSON.stringify(found.data),
