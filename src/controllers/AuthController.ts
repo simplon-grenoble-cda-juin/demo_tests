@@ -61,6 +61,10 @@ export class AuthController extends Controller {
     // Push data in the fake database
     tokens.set(token, email);
 
+    this.response.cookie("id", token, {
+      httpOnly: true,
+    });
+
     this.response.status(200).json({
       message: "Connexion réussie",
       token,
@@ -69,6 +73,8 @@ export class AuthController extends Controller {
   };
 
   profil = () => {
+    console.log(this.request.cookies);
+
     const tokenCheck = AuthService.validateAuthToken(this.request);
 
     if (!tokenCheck.success) {
@@ -79,6 +85,8 @@ export class AuthController extends Controller {
 
     const token = tokenCheck.data.token;
     const email = tokens.get(token);
+
+    console.log({ token, email });
 
     if (!email) {
       return this.response.status(403).json({ message: "Token non reconnu" });

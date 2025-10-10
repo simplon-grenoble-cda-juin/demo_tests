@@ -33,14 +33,14 @@ export class AuthService {
     password: string
   ): Result<User, null> {
     const found = this.findUserByEmail(users, email);
-    
+
     if (!found.success || found.data.getPassword() !== password) {
       return {
         success: false,
         message: "Email ou mot de passe invalide",
       };
     }
-    
+
     return { success: true, data: found.data };
   }
 
@@ -65,25 +65,23 @@ export class AuthService {
 
   // Test N°6
   static validateAuthToken(request: Request): Result<{ token: string }, null> {
-    const authHeader = request.headers;
+    const authCookies = request.cookies;
 
-    if (!authHeader) {
+    if (!authCookies) {
       return {
         success: false,
         message: "Token manquant ou invalide",
       };
     }
-    const authorization = request.headers.authorization;
+    const authorization = authCookies.id;
 
-    if (!authorization || !authorization.startsWith("Bearer ")) {
+    if (!authorization) {
       return {
         success: false,
         message: "Token manquant ou invalide",
       };
     }
 
-    const token = authorization.split(" ")[1];
-
-    return { success: true, data: { token } };
+    return { success: true, data: { token: authorization } };
   }
 }
