@@ -1,10 +1,9 @@
 import { Controller } from "../libs/Controller";
-import Token from "../modeles/Token";
 import User from "../modeles/User";
-import { TokenRepository } from "../repositories/TokenRepository";
-import { UserRepository } from "../repositories/UserRepository";
 import { AuthService } from "../services/AuthService";
-import argon2 from "argon2";
+
+const users: User[] = [];
+const tokens = new Map<string, string>();
 
 export class AuthController extends Controller {
   signUp = async () => {
@@ -14,45 +13,26 @@ export class AuthController extends Controller {
       return this.response.status(400).json({ message: validate.message });
     }
 
-    const userRepository = new UserRepository();
-    const tokenRepository = new TokenRepository();
-
     const { email, password } = validate.data;
 
-    const existingUser = await userRepository.findByEmail(email);
+    const existing = AuthService.findUserByEmail([], email);
 
-    if (existingUser) {
+    if (existing.success) {
       return this.response
         .status(409)
         .json({ message: "Utilisateur déjà existant" });
     }
 
-    const passwordHash = await argon2.hash(password);
-    const user = new User(email, passwordHash);
-    const userId = await userRepository.create(user);
+    const newUser = AuthService.createUser(email, password);
+    const token = AuthService.generateToken();
 
-    if (!userId) {
-      return this.response
-        .status(500)
-        .json({ message: "Une erreur est survenue" });
-    }
+    users.push(newUser);
+    tokens.set(token, email);
 
-    const token = new Token(userId);
-    const tokenId = await tokenRepository.create(token);
-
-    if (!tokenId) {
-      return this.response
-        .status(500)
-        .json({ message: "Une erreur est survenue" });
-    }
-
-    this.response.cookie("userToken", token.getToken(), {
-      httpOnly: true,
-    });
-
-    return this.response.status(201).json({
+    this.response.status(201).json({
       message: "Inscription réussie",
-      token: token.getToken(),
+      token,
+      user: JSON.stringify(newUser),
     });
   };
 
@@ -63,51 +43,28 @@ export class AuthController extends Controller {
       return this.response.status(400).json({ message: validate.message });
     }
 
-    const userRepository = new UserRepository();
-    const tokenRepository = new TokenRepository();
-
     const { email, password } = validate.data;
 
-    const existingUser = await userRepository.findByEmail(email);
-    const existingUserId = existingUser?.getId();
+    const auth = AuthService.authenticateUser(users, email, password);
 
-    if (!existingUser || !existingUserId) {
+    if (!auth.success) {
       return this.response
         .status(401)
         .json({ message: "Email ou mot de passe invalide" });
     }
 
-    const validPassword = await argon2.verify(
-      existingUser.getPasswordHash(),
-      password
-    );
+    const token = AuthService.generateToken();
 
-    if (!validPassword) {
-      return this.response
-        .status(401)
-        .json({ message: "Email ou mot de passe invalide" });
-    }
+    tokens.set(token, email);
 
-    let token = await tokenRepository.findByUserId(existingUserId);
-
-    if (!token) {
-      token = new Token(existingUserId);
-      const tokenId = await tokenRepository.create(token);
-
-      if (!tokenId) {
-        return this.response
-          .status(500)
-          .json({ message: "Une erreur est survenue" });
-      }
-    }
-
-    this.response.cookie("userToken", token.getToken(), {
+    this.response.cookie("userToken", token, {
       httpOnly: true,
     });
 
-    return this.response.status(200).json({
+    this.response.status(200).json({
       message: "Connexion réussie",
-      token: token.getToken(),
+      token,
+      user: JSON.stringify(auth.data),
     });
   };
 
@@ -118,18 +75,16 @@ export class AuthController extends Controller {
       return this.response.status(401).json({ message: validate.message });
     }
 
-    const userRepository = new UserRepository();
-    const tokenRepository = new TokenRepository();
+    const token = validate.data.token;
+    const email = tokens.get(token);
 
-    let token = await tokenRepository.find(validate.data.token);
-
-    if (!token) {
+    if (!email) {
       return this.response.status(403).json({ message: "Token non reconnu" });
     }
 
-    const user = await userRepository.find(token.getUserId());
+    const found = AuthService.findUserByEmail(users, email);
 
-    if (!user) {
+    if (!found.success) {
       return this.response
         .status(404)
         .json({ message: "Utilisateur introuvable" });
@@ -137,7 +92,7 @@ export class AuthController extends Controller {
 
     this.response.json({
       message: "Token valide",
-      data: JSON.stringify(user.serialize()),
+      data: JSON.stringify(found.data),
     });
   };
 }

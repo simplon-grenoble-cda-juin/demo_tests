@@ -28,11 +28,6 @@ Ensuite, préparez votre environnement :
 
 Actuellement, la méthode du contrôleur interagit avec une fausse base de données. Votre mission : la connecter à la vraie base PostgreSQL.
 
-➡️ Conservez la logique d’authentification existante,
-mais faites en sorte que les données soient désormais persistées et lues depuis la base réelle, en utilisant les repositories et modèles déjà livrés.
-
-> L’objectif est de rendre le processus d’inscription totalement fonctionnel avec la vraie base de données, sans casser le reste du code.
-
 Liste des actions à mener, dans l’ordre d’exécution :
 
 1. Vérifier la validité de la requête reçue et renvoyer une erreur si elle est invalide.
@@ -60,11 +55,6 @@ Liste des actions à mener, dans l’ordre d’exécution :
 
 La méthode actuelle du contrôleur `signIn` s’appuie sur la logique déjà en place mais doit être refactorisée pour fonctionner entièrement avec la vraie base de données PostgreSQL.
 
-➡️ Conservez la logique d’authentification existante,  
-mais assurez-vous que toutes les vérifications et manipulations d’utilisateurs ou de tokens soient effectuées via les repositories et modèles livrés.
-
-> L’objectif est de rendre le processus de connexion totalement fonctionnel avec la vraie base de données, sans casser le reste du code.
-
 Liste des actions à mener, dans l’ordre d’exécution :
 
 1. Vérifier la validité de la requête reçue et renvoyer une erreur si elle est invalide.
@@ -88,11 +78,6 @@ Liste des actions à mener, dans l’ordre d’exécution :
 ## Ticket #3 — Le profil utilisateur
 
 La méthode du contrôleur `profil` doit désormais exploiter la vraie base de données pour vérifier la validité du token et retourner les informations de l’utilisateur correspondant.
-
-➡️ Conservez la logique d’authentification existante,  
-mais remplacez toute interaction avec les données en mémoire par des requêtes via les repositories et modèles livrés.
-
-> L’objectif est de rendre la récupération du profil totalement fonctionnelle avec la vraie base de données, sans casser le reste du code.
 
 Liste des actions à mener, dans l’ordre d’exécution :
 
