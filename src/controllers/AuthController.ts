@@ -1,11 +1,10 @@
 import { Controller } from "../libs/Controller";
+import Token from "../modeles/Token";
 import User from "../modeles/User";
+import { TokenRepository } from "../repositories/TokenRepository";
+import { UserRepository } from "../repositories/UserRepository";
 import { AuthService } from "../services/AuthService";
-import { fakeUsers } from "./../../tests/fakeUsers";
-
-// Fake database
-const users: User[] = fakeUsers;
-const tokens = new Map<string, string>();
+import argon2 from "argon2";
 
 export class AuthController extends Controller {
   signUp = async () => {
@@ -15,108 +14,130 @@ export class AuthController extends Controller {
       return this.response.status(400).json({ message: validate.message });
     }
 
+    const userRepository = new UserRepository();
+    const tokenRepository = new TokenRepository();
+
     const { email, password } = validate.data;
 
-    const existing = AuthService.findUserByEmail(users, email);
+    const existingUser = await userRepository.findByEmail(email);
 
-    if (existing.success) {
+    if (existingUser) {
       return this.response
         .status(409)
         .json({ message: "Utilisateur déjà existant" });
     }
 
-    const newUser = AuthService.createUser(email, password);
-    const token = AuthService.generateToken();
+    const passwordHash = await argon2.hash(password);
+    const user = new User(email, passwordHash);
+    const userId = await userRepository.create(user);
 
-    // Push data in the fake database
-    users.push(newUser);
-    tokens.set(token, email);
+    if (!userId) {
+      return this.response
+        .status(500)
+        .json({ message: "Une erreur est survenue" });
+    }
 
-    this.response.status(201).json({
+    const token = new Token(userId);
+    const tokenId = await tokenRepository.create(token);
+
+    if (!tokenId) {
+      return this.response
+        .status(500)
+        .json({ message: "Une erreur est survenue" });
+    }
+
+    this.response.cookie("userToken", token.getToken(), {
+      httpOnly: true,
+    });
+
+    return this.response.status(201).json({
       message: "Inscription réussie",
-      token,
-      user: JSON.stringify(newUser),
+      token: token.getToken(),
     });
   };
 
-  signIn = () => {
+  signIn = async () => {
     const validate = AuthService.validateAuthRequest(this.request);
 
     if (!validate.success) {
       return this.response.status(400).json({ message: validate.message });
     }
 
+    const userRepository = new UserRepository();
+    const tokenRepository = new TokenRepository();
+
     const { email, password } = validate.data;
 
-    const auth = AuthService.authenticateUser(users, email, password);
+    const existingUser = await userRepository.findByEmail(email);
+    const existingUserId = existingUser?.getId();
 
-    if (!auth.success) {
+    if (!existingUser || !existingUserId) {
       return this.response
         .status(401)
         .json({ message: "Email ou mot de passe invalide" });
     }
 
-    const token = AuthService.generateToken();
+    const validPassword = await argon2.verify(
+      existingUser.getPasswordHash(),
+      password
+    );
 
-    // Push data in the fake database
-    tokens.set(token, email);
+    if (!validPassword) {
+      return this.response
+        .status(401)
+        .json({ message: "Email ou mot de passe invalide" });
+    }
 
-    // On crée un cookie "userToken" et on lui donne
-    // la valeur du token généré plus tot (ligne 59)
-    this.response.cookie("userToken", token, {
-      // Permet d'éviter que le cookie soit accessible
-      // par du JavaScript côté navigateur
+    let token = await tokenRepository.findByUserId(existingUserId);
+
+    if (!token) {
+      token = new Token(existingUserId);
+      const tokenId = await tokenRepository.create(token);
+
+      if (!tokenId) {
+        return this.response
+          .status(500)
+          .json({ message: "Une erreur est survenue" });
+      }
+    }
+
+    this.response.cookie("userToken", token.getToken(), {
       httpOnly: true,
     });
 
-    this.response.status(200).json({
+    return this.response.status(200).json({
       message: "Connexion réussie",
-      token,
-      user: JSON.stringify(auth.data),
+      token: token.getToken(),
     });
   };
 
-  profil = () => {
-    // On récupère un objet concernant l'état de validation du cookie
-    // + sa potentielle valeur (si trouvée)
-    const tokenCheck = AuthService.validateAuthToken(this.request);
+  profil = async () => {
+    const validate = AuthService.validateAuthToken(this.request);
 
-    // Si on a eu une erreur dans la récupération...
-    if (!tokenCheck.success) {
-      // On retourne une erreur 401
-      return this.response
-        .status(401)
-        .json({ message: "Token manquant ou invalide" });
+    if (!validate.success) {
+      return this.response.status(401).json({ message: validate.message });
     }
 
-    const token = tokenCheck.data.token;
-    const email = tokens.get(token);
+    const userRepository = new UserRepository();
+    const tokenRepository = new TokenRepository();
 
-    // Si le token ne correspond pas à un enregistrement
-    // dans le Map "tokens"...
-    if (!email) {
-      // On retourne une erreur 403
+    let token = await tokenRepository.find(validate.data.token);
+
+    if (!token) {
       return this.response.status(403).json({ message: "Token non reconnu" });
     }
 
-    // On récupère l'utilisateur correspondant à l'adresse
-    // email récupérée plut tôt
-    const found = AuthService.findUserByEmail(users, email);
+    const user = await userRepository.find(token.getUserId());
 
-    // Si aucun utilisateur trouvé...
-    if (!found.success) {
-      // On retourne une erreur 404
+    if (!user) {
       return this.response
         .status(404)
         .json({ message: "Utilisateur introuvable" });
     }
 
-    // On retourne un succès (200) avec
-    // le message "Token valide" et les
-    // données de l'utilisateur dans "data"
     this.response.json({
       message: "Token valide",
-      data: JSON.stringify(found.data),
+      data: JSON.stringify(user.serialize()),
     });
   };
 }
