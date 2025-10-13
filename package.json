@@ -3,19 +3,23 @@
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
+  "type": "module",
   "scripts": {
-    "start": "tsx index.ts",
-    "dev": "tsx watch index.ts",
+    "start": "NODE_ENV=prod tsx index.ts",
+    "dev": "NODE_ENV=dev tsx watch index.ts",
+    "test": "NODE_ENV=test tsx watch index.ts",
+    "start:test": "vitest",
+    "db:test:reset": "node scripts/reset_test_db.js",
     "build:all": "npm run build:css && npm run build:js",
     "build:js": "rollup -c",
     "build:css": "sass src/scss:public/css",
-    "watch:css": "sass --watch src/scss:public/css",
-    "test": "vitest"
+    "watch:css": "sass --watch src/scss:public/css"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@faker-js/faker": "^10.0.0",
     "@rollup/plugin-terser": "^0.4.4",
     "@rollup/plugin-typescript": "^12.1.4",
     "argon2": "^0.44.0",

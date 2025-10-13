@@ -6,7 +6,9 @@ export class Database {
 
   static getPool(): Pool {
     if (!Database.pool) {
-      dotenv.config();
+      const envFile = `.env.${process.env.NODE_ENV || "dev"}`;
+
+      dotenv.config({ path: envFile });
 
       Database.pool = new Pool({
         user: process.env.PGUSER,
