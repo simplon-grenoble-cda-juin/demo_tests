@@ -34,6 +34,10 @@ export default class User {
     return this.id;
   };
 
+  setId = (id: number): void => {
+    this.id = id;
+  };
+
   getEmail = (): string => {
     return this.email;
   };
