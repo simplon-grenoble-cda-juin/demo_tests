@@ -31,10 +31,17 @@ export interface TokenDbRow {
 }
 
 export interface PlayerDbRow {
+  id?: number;
   nickname: string;
   full_name: string;
   birthdate: string;
   country: string;
   team_id: number;
+}
+
+export interface TeamDbRow {
   id?: number;
+  name: string;
+  org_city: string;
+  founded_year: number;
 }
