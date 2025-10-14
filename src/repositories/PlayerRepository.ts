@@ -3,7 +3,29 @@ import Player from "../modeles/Player";
 import { PlayerDbRow } from "../types/Types";
 
 export class PlayerRepository extends Repository {
-  findAll = async (): Promise<Player[] | null> => {
+  findByNickname = async (nickname: string): Promise<Player | null> => {
+    const query = {
+      name: "find-player",
+      text: "SELECT * FROM public.player WHERE nickname = $1",
+      values: [nickname],
+    };
+
+    try {
+      const result = await this.pool.query<PlayerDbRow>(query);
+
+      if (result.rowCount === 0) return null;
+
+      const player = Player.fromRow(result.rows[0]);
+
+      return player;
+    } catch (error) {
+      console.log(error);
+    }
+
+    return null;
+  };
+
+  findAll = async (): Promise<Player[]> => {
     const query = {
       name: "find-all-player",
       text: "SELECT * FROM public.player",

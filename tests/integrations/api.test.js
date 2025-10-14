@@ -1,4 +1,7 @@
-import { describe, expect, it } from "vitest";
+import argon2 from "argon2";
+import { afterAll, beforeEach, describe, expect, it } from "vitest";
+import ClientManager from "../_setup/ClientManager";
+import { UserFactory } from "../_factories/user.factory";
 
 const fetcher = async (url, body) => {
   const response = await fetch(url, {
@@ -25,6 +28,22 @@ const generateRandomEmail = () => {
 };
 
 describe("AuthController.signin", () => {
+  beforeEach(async () => {
+    const seedManager = new ClientManager();
+    await seedManager.clearTables();
+
+    await UserFactory.populate(seedManager.getClient(), {
+      email: "test1@test.com",
+      password: await argon2.hash("123"),
+    });
+  });
+
+  afterAll(async () => {
+    const seedManager = new ClientManager();
+    await seedManager.clearTables();
+    await seedManager.end()
+  });
+
   const cases = [
     {
       name: "renvoie 400 et un message d’erreur si l’email est manquant",

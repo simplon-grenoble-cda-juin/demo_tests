@@ -51,6 +51,10 @@ export default class Player {
     return this.id;
   };
 
+  setId = (id: number): void => {
+    this.id = id;
+  };
+
   getNickname = (): string => {
     return this.nickname;
   };

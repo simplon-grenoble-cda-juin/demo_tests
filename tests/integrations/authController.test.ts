@@ -1,14 +1,28 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import app from "../../index";
+import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import argon2 from "argon2";
 import request from "supertest";
-import app from "../index";
-import { begin, commitAndRelease } from "./setup/db";
-import { createUser } from "./factories/user.factory";
-import { truncateAll } from "./setup/truncate";
+import ClientManager from "../_setup/ClientManager";
+import { UserFactory } from "../_factories/user.factory";
 
 describe("AuthController.signIn", () => {
+  beforeEach(async () => {
+    const seedManager = new ClientManager();
+    await seedManager.clearTables();
+
+    await UserFactory.populate(seedManager.getClient(), {
+      email: "test1@test.com",
+      password: await argon2.hash("123"),
+    });
+  });
+
+  afterAll(async () => {
+    const seedManager = new ClientManager();
+    await seedManager.clearTables();
+    await seedManager.end()
+  });
+
   it("email is invalid", () => {
-    // On englobe notre application Express dans la fonction "request"
     request(app)
       // On appelle la route "/signin" avec la méthode POST
       .post("/signin")
@@ -58,17 +72,6 @@ describe("AuthController.signIn", () => {
         expect(response.body.message).toEqual("Email et mot de passe requis");
       });
   });
-
-  // it("email and password are valid", () => {
-  //   request(app)
-  //     .post("/signin")
-  //     .send({ email: "test1@test.com", password: "123" })
-  //     .expect(200)
-  //     .expect("Content-Type", /json/)
-  //     .then((response) => {
-  //       expect(response.body.message).toEqual("Connexion réussie");
-  //     });
-  // });
 });
 
 describe("AuthController.profil", async () => {
@@ -77,13 +80,19 @@ describe("AuthController.profil", async () => {
   const agent = request.agent(app);
 
   beforeEach(async () => {
-    await truncateAll();
-    const client = await begin();
-    await createUser(client, {
-      email: "test1@test.com",
+    const seedManager = new ClientManager();
+    await seedManager.clearTables();
+
+    await UserFactory.populate(seedManager.getClient(), {
+      email: "test2@test.com",
       password: await argon2.hash("123"),
     });
-    await commitAndRelease(client);
+  });
+
+  afterAll(async () => {
+    const seedManager = new ClientManager();
+    await seedManager.clearTables();
+    await seedManager.end()
   });
 
   // On commence à utiliser l'agent pour se connecter,
@@ -91,7 +100,7 @@ describe("AuthController.profil", async () => {
   it("should save cookie", async () => {
     const response = await agent
       .post("/signin")
-      .send({ email: "test1@test.com", password: "123" });
+      .send({ email: "test2@test.com", password: "123" });
 
     // On vérifie la présence d'un header "set-cookie",
     // qui permet de créer un cookie
@@ -111,7 +120,7 @@ describe("AuthController.profil", async () => {
   it("should return profile data", async () => {
     await agent
       .post("/signin")
-      .send({ email: "test1@test.com", password: "123" });
+      .send({ email: "test2@test.com", password: "123" });
 
     // On utilise notre agent déjà connecté
     // grâce au test précédent
@@ -123,6 +132,10 @@ describe("AuthController.profil", async () => {
   });
 
   it("should return no valid token error", async () => {
+    await agent
+      .post("/signin")
+      .send({ email: "test2@test.com", password: "123" });
+
     // On teste sans token, sans passer par notre agent.
     // Pour une requête "neutre" (sans contexte persistant),
     // on réutilise directement "request".
@@ -131,6 +144,10 @@ describe("AuthController.profil", async () => {
   });
 
   it("should return unknown token", async () => {
+    await agent
+      .post("/signin")
+      .send({ email: "test2@test.com", password: "123" });
+
     const response = await request(app)
       .get("/me")
       // Toujours avec une requête neutre, on vient tester
