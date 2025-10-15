@@ -1,4 +1,4 @@
-import { afterAll, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, afterEach, beforeEach, describe, expect, it } from "vitest";
 import ClientManager from "../_setup/ClientManager";
 import User from "../../src/modeles/User";
 import Player from "../../src/modeles/Player";
@@ -15,7 +15,7 @@ describe("User fixtures factory", () => {
   afterAll(async () => {
     const seedManager = new ClientManager();
     await seedManager.clearTables();
-    await seedManager.end()
+    await seedManager.end();
   });
 
   it("should have admin user", async () => {
@@ -45,7 +45,7 @@ describe("Player fixtures factory", async () => {
   afterAll(async () => {
     const seedManager = new ClientManager();
     await seedManager.clearTables();
-    await seedManager.end()
+    await seedManager.end();
   });
 
   it("should have admin player", async () => {

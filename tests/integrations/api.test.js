@@ -36,6 +36,8 @@ describe("AuthController.signin", () => {
       email: "test1@test.com",
       password: await argon2.hash("123"),
     });
+
+    await UserFactory.populateRandom(seedManager.getClient(), 20)
   });
 
   afterAll(async () => {

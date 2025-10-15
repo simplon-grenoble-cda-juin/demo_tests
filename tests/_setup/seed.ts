@@ -4,7 +4,7 @@ import { TeamFactory } from "../_factories/team.factory";
 import { PlayerFactory } from "../_factories/player.factory";
 
 export default async function seed(client: Client) {
-  await UserFactory.populate(client, {
+   await UserFactory.populate(client, {
     email: "admin@admin.fr",
     password: "123",
   });

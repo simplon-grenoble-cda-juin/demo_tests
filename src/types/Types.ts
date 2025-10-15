@@ -45,3 +45,9 @@ export interface TeamDbRow {
   org_city: string;
   founded_year: number;
 }
+
+export interface GameDbRow {
+  id?: number;
+  name: string;
+  genre: string;
+}
